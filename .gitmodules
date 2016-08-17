@@ -1,0 +1,3 @@
+[submodule "HelperCategories"]
+	path = HelperCategories
+	url = git@github.com:azplanlos/HelperCategories.git

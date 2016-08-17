@@ -7,6 +7,7 @@
 //
 
 #import "SIDragView.h"
+#import "NSArray+ArrayForKeypath.h"
 
 @interface SIDragView () {
     NSView* dragView;
@@ -205,17 +206,27 @@
         isDragging = YES;
         [childView removeFromSuperview];
         [dragView addSubview:childView];
+#if defined __DEBUG__
+        NSLog(@"start drag #%li", childView.positionIndex);
+#endif
     }
 }
 
 -(void)stopDragForView:(SIDragViewChild *)childView {
     if (childView.superview != gridView) {
+#if defined __DEBUG__
+        NSLog(@"stop drag #%li", childView.positionIndex);
+#endif
         isDragging = NO;
         [childView removeFromSuperview];
         [gridView addSubview:childView];
     }
 }
 
+-(NSArray*)sortedUserObjects {
+    NSArray* objs = [[[gridView.subviews sortedArrayUsingDescriptors:@[[NSSortDescriptor sortDescriptorWithKey:@"positionIndex" ascending:YES]]] arrayForValuesWithKey:@"userObject"] arrayByAddingObjectsFromArray:[dragView.subviews arrayForValuesWithKey:@"userObject"]];
+    return objs;
+}
 
 @synthesize isDragging;
 @end

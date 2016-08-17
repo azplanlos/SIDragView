@@ -17,6 +17,8 @@
 -(void)removeChildView:(SIDragViewChild*)childView;
 -(void)arrangeToGrid;
 
+-(NSArray*)sortedUserObjects;
+
 -(void)startDragForView:(SIDragViewChild*)childView;
 -(void)stopDragForView:(SIDragViewChild*)childView;
 

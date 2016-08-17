@@ -135,24 +135,26 @@ static NSComparisonResult myCustomViewAboveSiblingViewsComparator( NSView * view
 }
 
 - (void)mouseDragged:(NSEvent *)theEvent {
-    // We're working only in the superview's coordinate space, so we always convert.
-    NSPoint newDragLocation = [[self superview] convertPoint:[theEvent locationInWindow] fromView:nil];
-    NSPoint thisOrigin = [self frame].origin;
-    thisOrigin.x += (-self.lastDragLocation.x + newDragLocation.x);
-    thisOrigin.y += (-self.lastDragLocation.y + newDragLocation.y);
-    if (thisOrigin.x < 0) thisOrigin.x = 0;
-    if (thisOrigin.y < 0) thisOrigin.y = 0;
-    if (thisOrigin.x + self.bounds.size.width > self.superview.bounds.size.width) thisOrigin.x = self.superview.bounds.size.width - self.bounds.size.width;
-    if (thisOrigin.y + self.bounds.size.height > self.superview.bounds.size.height) thisOrigin.y = self.superview.bounds.size.height - self.bounds.size.height;
-    [self setFrameOrigin:thisOrigin];
-    self.lastDragLocation = newDragLocation;
-    
-    NSInteger xcurrentPos = [self.parentView positionIndexForPoint:thisOrigin];    
-    if (xcurrentPos != self.currentPos) self.currentPos = xcurrentPos;
-
+    if (dragging) {
+        // We're working only in the superview's coordinate space, so we always convert.
+        NSPoint newDragLocation = [[self superview] convertPoint:[theEvent locationInWindow] fromView:nil];
+        NSPoint thisOrigin = [self frame].origin;
+        thisOrigin.x += (-self.lastDragLocation.x + newDragLocation.x);
+        thisOrigin.y += (-self.lastDragLocation.y + newDragLocation.y);
+        if (thisOrigin.x < 0) thisOrigin.x = 0;
+        if (thisOrigin.y < 0) thisOrigin.y = 0;
+        if (thisOrigin.x + self.bounds.size.width > self.superview.bounds.size.width) thisOrigin.x = self.superview.bounds.size.width - self.bounds.size.width;
+        if (thisOrigin.y + self.bounds.size.height > self.superview.bounds.size.height) thisOrigin.y = self.superview.bounds.size.height - self.bounds.size.height;
+        [self setFrameOrigin:thisOrigin];
+        self.lastDragLocation = newDragLocation;
+        
+        NSInteger xcurrentPos = [self.parentView positionIndexForPoint:thisOrigin];
+        if (xcurrentPos != self.currentPos) self.currentPos = xcurrentPos;
+        
 #if defined __DEBUG__
-    [self setNeedsDisplay:YES];
+        [self setNeedsDisplay:YES];
 #endif
+    }
 }
 
 -(void)setFrameOrigin:(NSPoint)newOrigin {
@@ -176,6 +178,9 @@ static NSComparisonResult myCustomViewAboveSiblingViewsComparator( NSView * view
     [self setFrameOrigin:[self.parentView pointForChild:self andPos:posNum]];
     [self.parentView stopDragForView:self];
     [self.parentView arrangeToGrid];
+#if defined __DEBUG__
+    NSLog(@"sorted: %@", [self.parentView sortedUserObjects]);
+#endif
 }
 
 -(void)setPositionIndex:(NSInteger)positionIndex {
