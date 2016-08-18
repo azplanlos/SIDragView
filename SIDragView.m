@@ -61,7 +61,7 @@
     //// Frames
     NSRect frame = self.bounds;
     
-    
+    /*
     //// Rounded Rectangle Drawing
     NSBezierPath* roundedRectanglePath = [NSBezierPath bezierPathWithRoundedRect: NSMakeRect(NSMinX(frame) - 0.5, NSMinY(frame) - 0.5, NSWidth(frame) - 7, NSHeight(frame)) xRadius: 8 yRadius: 8];
     [NSGraphicsContext saveGraphicsState];
@@ -94,7 +94,7 @@
     [NSGraphicsContext restoreGraphicsState];
     
     [NSGraphicsContext restoreGraphicsState];
-    
+    */
     [NSGraphicsContext saveGraphicsState];
     NSSize grid = [self gridSize];
     for (int x = grid.width; x < self.bounds.size.width-7; x += grid.width) {
@@ -111,8 +111,8 @@
     for (int y = grid.height + 10; y < self.bounds.size.height-1; y += grid.height) {
         //// Bezier Drawing
         NSBezierPath* bezierPath = [NSBezierPath bezierPath];
-        [bezierPath moveToPoint: NSMakePoint(NSMinX(frame) + 2, NSMaxY(frame) - y)];
-        [bezierPath lineToPoint: NSMakePoint(NSMaxX(frame) - 10, NSMaxY(frame) - y)];
+        [bezierPath moveToPoint: NSMakePoint(NSMinX(frame), NSMaxY(frame) - y)];
+        [bezierPath lineToPoint: NSMakePoint([self numberOfColumns] * grid.width, NSMaxY(frame) - y)];
         [color2 setStroke];
         [bezierPath setLineWidth: 1];
         CGFloat bezierPattern[] = {2, 2, 2, 2};
@@ -122,6 +122,18 @@
 
     [NSGraphicsContext restoreGraphicsState];
     
+}
+
+-(NSInteger)numberOfColumns {
+    NSSize gridSize = [self gridSize];
+    return (NSInteger)self.bounds.size.width / (NSInteger)gridSize.width;
+}
+
+-(NSInteger)numberOfRows {
+    double num = ((double)gridView.subviews.count + (double)dragView.subviews.count) / (double)self.numberOfColumns;
+    int rem = fmod(num, 1);
+    if (rem > 0) num++;
+    return num;
 }
 
 -(NSSize)gridSize {
@@ -135,9 +147,19 @@
     return NSMakeSize(maxWidth + 5, maxHeight + 5);
 }
 
+-(NSSize)minViewSize {
+    if (gridView.subviews.count == 0) return NSMakeSize(10, 10);
+    NSSize gridsize = [self gridSize];
+    double width = ([self numberOfColumns] * gridsize.width) + 5;
+    double height = ([self numberOfRows] * gridsize.height)+10;
+    if (width < self.superview.bounds.size.width-10) width = self.superview.bounds.size.width-10;
+    if (height < self.superview.bounds.size.height-10) height = self.superview.bounds.size.height - 10;
+    return NSMakeSize(width, height);
+}
+
 -(void)arrangeToGrid {
     int viewNum = 0;
-    for (SIDragViewChild* subview in [gridView.subviews sortedArrayUsingDescriptors:@[[NSSortDescriptor sortDescriptorWithKey:@"positionIndex" ascending:YES]]]) {
+    for (SIDragViewChild* subview in [[gridView.subviews arrayByAddingObjectsFromArray:dragView.subviews] sortedArrayUsingDescriptors:@[[NSSortDescriptor sortDescriptorWithKey:@"positionIndex" ascending:YES]]]) {
         [subview setFrameOrigin:[self pointForChild:subview andPos:viewNum]];
         subview.positionIndex = viewNum;
         viewNum++;
@@ -146,14 +168,26 @@
 
 -(NSPoint)pointForChild:(SIDragViewChild*)child andPos:(NSInteger)indexpos {
     NSSize gridSize = [self gridSize];
-    NSPoint myPoint = NSMakePoint(indexpos * (gridSize.width) + ((gridSize.width - child.bounds.size.width)/2), self.bounds.size.height - (10 + child.bounds.size.height + (gridSize.height - child.bounds.size.height) / 2));
-    return myPoint;
+    NSInteger numberOfCols = [self numberOfColumns];
+    if (numberOfCols != 0) {
+        NSInteger row = indexpos / numberOfCols;
+        NSInteger col = indexpos - (row * numberOfCols);
+        NSPoint myPoint = NSMakePoint(col * (gridSize.width) + ((gridSize.width - child.bounds.size.width)/2), self.bounds.size.height - (10 + (row * gridSize.height) + child.bounds.size.height + (gridSize.height - child.bounds.size.height) / 2));
+        return myPoint;
+    }
+    return NSZeroPoint;
 }
 
 -(NSInteger)positionIndexForPoint:(NSPoint)point {
     NSSize gridSize = [self gridSize];
-    NSInteger posNum = (NSInteger)point.x / (NSInteger)gridSize.width;
-    if (point.x + (gridSize.width/2) > (posNum+1) * gridSize.width) posNum++;
+    NSInteger numberOfCols = [self numberOfColumns];
+    NSInteger row = (NSInteger)(((NSInteger)self.bounds.size.height - 10 - ((NSInteger)point.y - (self.gridSize.height/2)) - self.gridSize.height) / (NSInteger)gridSize.height);
+    //NSInteger difToGrid = (self.bounds.size.height - point.y) - (self.bounds.size.height - 10 - (row+1 * gridSize.height));
+    //if (difToGrid > -(gridSize.height/2)) row++;
+    NSInteger col = (NSInteger)point.x / (NSInteger)gridSize.width;
+    if (point.x + (gridSize.width/2) > (col+1) * gridSize.width) col++;
+    NSInteger posNum = row * numberOfCols + col;
+    //NSLog(@"position for point %f/%f = %li (row %li, col %li) diff %li", point.x, point.y, posNum, row, col, difToGrid);
     return posNum;
 }
 
@@ -183,7 +217,15 @@
     if ([object isKindOfClass:[SIDragViewChild class]]) {
         NSInteger oldIndex = [[change valueForKey:NSKeyValueChangeOldKey] integerValue];
         NSInteger newIndex = [[change valueForKey:NSKeyValueChangeNewKey] integerValue];
-        [self animateMoveChild:[self childAtPosition:newIndex] toPos:oldIndex];
+        if (abs(oldIndex-newIndex) <= 1) [self animateMoveChild:[self childAtPosition:newIndex] toPos:oldIndex]; else {
+            if (oldIndex-newIndex < 0) {
+                // forwards
+                [self animateMoveChildsFromIndex:oldIndex+1 toIndex:newIndex forSteps:-1];
+            } else {
+                // backwards
+                [self animateMoveChildsFromIndex:newIndex toIndex:oldIndex-1 forSteps:1];
+            }
+        }
     }
 }
 
@@ -194,9 +236,28 @@
     }
     return retChild;
 }
+
+-(void)animateMoveChildsFromIndex:(NSInteger)startIndex toIndex:(NSInteger)stopIndex forSteps:(NSInteger)steps {
+    NSInteger dir = startIndex - stopIndex;
+    if (dir >= 0) dir = 1; else dir = -1;
+    NSMutableArray* childs = [NSMutableArray arrayWithCapacity:abs(startIndex-stopIndex)];
+    if (dir > 0) {
+        for (NSInteger i = startIndex; i <= stopIndex; i += dir) {
+            SIDragViewChild* child = [self childAtPosition:i];
+            if (child) [childs addObject:[self childAtPosition:i]];
+        }
+    } else {
+        for (NSInteger i = stopIndex; i >= startIndex; i += dir) {
+            SIDragViewChild* child = [self childAtPosition:i];
+            if (child) [childs addObject:[self childAtPosition:i]];        }
+    }
+    for (SIDragViewChild* child in childs) {
+        [self animateMoveChild:child toPos:child.positionIndex+steps];
+    }
+}
          
 -(void)animateMoveChild:(SIDragViewChild*)child toPos:(NSInteger)newIndex {
-    [[NSAnimationContext currentContext] setDuration:0.3];
+    [[NSAnimationContext currentContext] setDuration:0.2];
     [[child animator] setFrameOrigin:[self pointForChild:child andPos:newIndex]];
     child.positionIndex = newIndex;
 }
@@ -223,8 +284,13 @@
     }
 }
 
+-(NSArray*)sortedChilds {
+    NSArray* objs = [[gridView.subviews arrayByAddingObjectsFromArray:dragView.subviews] sortedArrayUsingDescriptors:@[[NSSortDescriptor sortDescriptorWithKey:@"positionIndex" ascending:YES]]];
+    return objs;
+}
+
 -(NSArray*)sortedUserObjects {
-    NSArray* objs = [[[gridView.subviews sortedArrayUsingDescriptors:@[[NSSortDescriptor sortDescriptorWithKey:@"positionIndex" ascending:YES]]] arrayForValuesWithKey:@"userObject"] arrayByAddingObjectsFromArray:[dragView.subviews arrayForValuesWithKey:@"userObject"]];
+    NSArray* objs = [self.sortedChilds arrayForValuesWithKey:@"userObject"];
     return objs;
 }
 

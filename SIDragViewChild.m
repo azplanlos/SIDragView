@@ -167,20 +167,22 @@ static NSComparisonResult myCustomViewAboveSiblingViewsComparator( NSView * view
 -(void)mouseUp:(NSEvent *)theEvent {
     // snap to grid
     //[self.parentView stopDragForView:self];
-    dragging = NO;
-    NSPoint newDragLocation = [[self superview] convertPoint:[theEvent locationInWindow] fromView:nil];
-    NSPoint thisOrigin = [self frame].origin;
-    thisOrigin.x += (-self.lastDragLocation.x + newDragLocation.x);
-    thisOrigin.y += (-self.lastDragLocation.y + newDragLocation.y);
-    NSInteger posNum = [self.parentView positionIndexForPoint:thisOrigin];
-    self.positionIndex = posNum;
-    currentPos = posNum;
-    [self setFrameOrigin:[self.parentView pointForChild:self andPos:posNum]];
-    [self.parentView stopDragForView:self];
-    [self.parentView arrangeToGrid];
+    if (dragging) {
+        dragging = NO;
+        NSPoint newDragLocation = [[self superview] convertPoint:[theEvent locationInWindow] fromView:nil];
+        NSPoint thisOrigin = [self frame].origin;
+        thisOrigin.x += (-self.lastDragLocation.x + newDragLocation.x);
+        thisOrigin.y += (-self.lastDragLocation.y + newDragLocation.y);
+        NSInteger posNum = [self.parentView positionIndexForPoint:thisOrigin];
+        self.positionIndex = posNum;
+        currentPos = posNum;
+        [self setFrameOrigin:[self.parentView pointForChild:self andPos:posNum]];
+        //[self.parentView stopDragForView:self];
+        [self.parentView arrangeToGrid];
 #if defined __DEBUG__
-    NSLog(@"sorted: %@", [self.parentView sortedUserObjects]);
+        NSLog(@"sorted: %@", [self.parentView sortedUserObjects]);
 #endif
+    }
 }
 
 -(void)setPositionIndex:(NSInteger)positionIndex {

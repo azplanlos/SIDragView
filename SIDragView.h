@@ -12,11 +12,15 @@
 @interface SIDragView : NSView
 
 -(NSSize)gridSize;
+-(NSSize)minViewSize;
+-(NSInteger)numberOfColumns;
+-(NSInteger)numberOfRows;
 
 -(void)addChildView:(SIDragViewChild*)childView;
 -(void)removeChildView:(SIDragViewChild*)childView;
 -(void)arrangeToGrid;
 
+-(NSArray*)sortedChilds;
 -(NSArray*)sortedUserObjects;
 
 -(void)startDragForView:(SIDragViewChild*)childView;
