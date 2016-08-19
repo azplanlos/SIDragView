@@ -29,5 +29,7 @@
 -(NSPoint)pointForChild:(SIDragViewChild*)child andPos:(NSInteger)indexpos;
 -(NSInteger)positionIndexForPoint:(NSPoint)point;
 
+-(void)updateDragPos:(NSPoint)dragPoint;
+
 @property (readonly) BOOL isDragging;
 @end

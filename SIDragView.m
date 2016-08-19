@@ -12,6 +12,7 @@
 @interface SIDragView () {
     NSView* dragView;
     NSView* gridView;
+    NSDate* lastScroll;
 }
 
 @end
@@ -240,7 +241,7 @@
 -(void)animateMoveChildsFromIndex:(NSInteger)startIndex toIndex:(NSInteger)stopIndex forSteps:(NSInteger)steps {
     NSInteger dir = startIndex - stopIndex;
     if (dir >= 0) dir = 1; else dir = -1;
-    NSMutableArray* childs = [NSMutableArray arrayWithCapacity:abs(startIndex-stopIndex)];
+    NSMutableArray* childs = [NSMutableArray arrayWithCapacity:abs((int)(startIndex-stopIndex))];
     if (dir > 0) {
         for (NSInteger i = startIndex; i <= stopIndex; i += dir) {
             SIDragViewChild* child = [self childAtPosition:i];
@@ -292,6 +293,25 @@
 -(NSArray*)sortedUserObjects {
     NSArray* objs = [self.sortedChilds arrayForValuesWithKey:@"userObject"];
     return objs;
+}
+
+-(void)updateDragPos:(NSPoint)dragPoint {
+    if (self.superview && self.superview.superview && [self.superview.superview isKindOfClass:[NSClipView class]] && self.superview.superview.superview && [self.superview.superview.superview isKindOfClass:[NSScrollView class]] && ((lastScroll && [lastScroll timeIntervalSinceNow] < -0.2) || !lastScroll)) {
+        NSSize grid = [self gridSize];
+        NSScrollView* scrollView = (NSScrollView*)self.superview.superview.superview;
+        NSLog(@"scroll to: %f/%f", dragPoint.x, dragPoint.y);
+        if (dragPoint.y < scrollView.documentVisibleRect.origin.y + grid.height/2) {
+            double y = scrollView.documentVisibleRect.origin.y - (grid.height/2);
+            if (y < 0) y = 0;
+            [scrollView.contentView scrollToPoint:NSMakePoint(0, y)];
+        } else if (dragPoint.y > scrollView.documentVisibleRect.origin.y + scrollView.documentVisibleRect.size.height - (grid.height/2)) {
+            double y = scrollView.documentVisibleRect.origin.y + (grid.height/2);
+            if (y > self.bounds.size.height - scrollView.contentView.bounds.size.height) y = self.bounds.size.height - scrollView.contentView.bounds.size.height;
+            [scrollView.contentView scrollToPoint:NSMakePoint(0, y)];
+        }
+        lastScroll = [NSDate date];
+        [scrollView reflectScrolledClipView:scrollView.contentView];
+    }
 }
 
 @synthesize isDragging;

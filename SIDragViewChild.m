@@ -151,6 +151,8 @@ static NSComparisonResult myCustomViewAboveSiblingViewsComparator( NSView * view
         NSInteger xcurrentPos = [self.parentView positionIndexForPoint:thisOrigin];
         if (xcurrentPos != self.currentPos) self.currentPos = xcurrentPos;
         
+        [self.parentView updateDragPos:thisOrigin];
+        
 #if defined __DEBUG__
         [self setNeedsDisplay:YES];
 #endif
