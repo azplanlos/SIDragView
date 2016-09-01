@@ -31,5 +31,9 @@
 
 -(void)updateDragPos:(NSPoint)dragPoint;
 
+-(id)childWithUserObject:(id)userObject;
+
+-(void)removeAllChilds;
+
 @property (readonly) BOOL isDragging;
 @end

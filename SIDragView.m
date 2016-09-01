@@ -299,7 +299,6 @@
     if (self.superview && self.superview.superview && [self.superview.superview isKindOfClass:[NSClipView class]] && self.superview.superview.superview && [self.superview.superview.superview isKindOfClass:[NSScrollView class]] && ((lastScroll && [lastScroll timeIntervalSinceNow] < -0.2) || !lastScroll)) {
         NSSize grid = [self gridSize];
         NSScrollView* scrollView = (NSScrollView*)self.superview.superview.superview;
-        NSLog(@"scroll to: %f/%f", dragPoint.x, dragPoint.y);
         if (dragPoint.y < scrollView.documentVisibleRect.origin.y + grid.height/2) {
             double y = scrollView.documentVisibleRect.origin.y - (grid.height/2);
             if (y < 0) y = 0;
@@ -312,6 +311,25 @@
         lastScroll = [NSDate date];
         [scrollView reflectScrolledClipView:scrollView.contentView];
     }
+}
+
+-(id)childWithUserObject:(id)userObject {
+    for (SIDragViewChild* child in [dragView.subviews arrayByAddingObjectsFromArray:gridView.subviews]) {
+        if ([child.userObject isEqualTo:userObject]) {
+            return child;
+        }
+    }
+    return nil;
+}
+
+-(void)removeAllChilds {
+    gridView = nil;
+    dragView = nil;
+    dragView = [[NSView alloc] initWithFrame:self.bounds];
+    gridView = [[NSView alloc] initWithFrame:self.bounds];
+    [self addSubview:gridView];
+    [self addSubview:dragView];
+    isDragging = NO;
 }
 
 @synthesize isDragging;
